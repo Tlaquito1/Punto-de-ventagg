@@ -9,27 +9,21 @@ app.use(express.static('public'));
 
 // --- PRODUCTOS ---
 app.get('/api/productos', (req, res) => {
-    // Nota: Si en tu BD la tabla es minúscula, cámbialo a "productos"
-    db.query("SELECT * FROM PRODUCTOS", (err, r) => {
-        if (err) return res.status(500).json(err);
-        res.json(r);
+    // Intenta con minúsculas si en Clever Cloud están así
+    db.query("SELECT * FROM productos", (err, r) => {
+        if (err) {
+            console.error("Error SQL:", err.message); // Esto lo verás en los logs de Render
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(r || []); // Enviamos arreglo vacío si no hay nada para que .map no falle
     });
 });
 
-app.post('/api/productos', (req, res) => {
-    const { codigo, nombre, precio, stock } = req.body;
-    const sql = "INSERT INTO PRODUCTOS (CODIGO, NOMBRE, PRECIO, STOCK) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE STOCK = STOCK + VALUES(STOCK), PRECIO = VALUES(PRECIO)";
-    db.query(sql, [codigo, nombre, precio, stock], (err) => {
-        if (err) return res.status(500).json(err);
-        res.json({ ok: true });
-    });
-});
-
-// --- CLIENTES (Necesario para el select del POS) ---
+// --- CLIENTES ---
 app.get('/api/clientes', (req, res) => {
-    db.query("SELECT * FROM CLIENTES", (err, r) => {
-        if (err) return res.status(500).json(err);
-        res.json(r);
+    db.query("SELECT * FROM clientes", (err, r) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(r || []);
     });
 });
 
