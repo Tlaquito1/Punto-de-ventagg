@@ -1,9 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-const db = require('./server'); // Asegúrate de que server.js tenga las credenciales de Clever Cloud
+const db = require('./server');
 const app = express();
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
@@ -12,8 +11,8 @@ app.use(express.static('public'));
 app.get('/api/productos', (req, res) => {
     db.query("SELECT * FROM productos", (err, r) => {
         if (err) {
-            console.error("❌ Error en productos:", err.message);
-            return res.json([]); // Enviamos array vacío para que el frontend no de error
+            console.error("Error en productos:", err.message);
+            return res.status(500).json([]);
         }
         res.json(r || []);
     });
@@ -31,10 +30,7 @@ app.post('/api/productos', (req, res) => {
 // --- CLIENTES ---
 app.get('/api/clientes', (req, res) => {
     db.query("SELECT * FROM clientes", (err, r) => {
-        if (err) {
-            console.error("❌ Error en clientes:", err.message);
-            return res.json([]);
-        }
+        if (err) return res.status(500).json([]);
         res.json(r || []);
     });
 });
@@ -42,7 +38,7 @@ app.get('/api/clientes', (req, res) => {
 // --- PROVEEDORES ---
 app.get('/api/proveedores', (req, res) => {
     db.query("SELECT * FROM proveedores", (err, r) => {
-        if (err) return res.json([]);
+        if (err) return res.status(500).json([]);
         res.json(r || []);
     });
 });
@@ -58,30 +54,21 @@ app.post('/api/proveedores', (req, res) => {
 // --- VENTAS ---
 app.post('/api/venta', (req, res) => {
     const { clienteId, productos, total } = req.body;
-    
     db.query("INSERT INTO ventas (COD_CLIENT, TOTAL) VALUES (?, ?)", [clienteId, total], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
+        if (err) return res.status(500).json(err);
         const folio = result.insertId;
-        
-        // Registro de detalles y actualización de stock
         productos.forEach(p => {
-            db.query("INSERT INTO detalle_ventas (ID_VENTA, CODIGO, CANTIDAD, PRECIO_UNIT) VALUES (?, ?, ?, ?)", 
-                [folio, p.CODIGO, p.cant, p.PRECIO]);
-            
-            db.query("UPDATE productos SET STOCK = STOCK - ? WHERE CODIGO = ?", 
-                [p.cant, p.CODIGO]);
+            db.query("INSERT INTO detalle_ventas (ID_VENTA, CODIGO, CANTIDAD, PRECIO_UNIT) VALUES (?, ?, ?, ?)", [folio, p.CODIGO, p.cant, p.PRECIO]);
+            db.query("UPDATE productos SET STOCK = STOCK - ? WHERE CODIGO = ?", [p.cant, p.CODIGO]);
         });
-        
         res.json({ success: true, folio: folio });
     });
 });
 
 // --- HISTORIAL ---
 app.get('/api/historial', (req, res) => {
-    const sql = "SELECT v.*, c.NOMBRE, c.APELLIDO FROM ventas v JOIN clientes c ON v.COD_CLIENT = c.COD_CLIENT ORDER BY v.ID_VENTA DESC";
-    db.query(sql, (err, r) => {
-        if (err) return res.json([]);
+    db.query("SELECT v.*, c.NOMBRE, c.APELLIDO FROM ventas v JOIN clientes c ON v.COD_CLIENT = c.COD_CLIENT ORDER BY v.ID_VENTA DESC", (err, r) => {
+        if (err) return res.status(500).json([]);
         res.json(r || []);
     });
 });
@@ -90,15 +77,11 @@ app.get('/api/historial', (req, res) => {
 app.get('/api/venta/:id', (req, res) => {
     db.query("SELECT v.*, c.* FROM ventas v JOIN clientes c ON v.COD_CLIENT = c.COD_CLIENT WHERE v.ID_VENTA = ?", [req.params.id], (err, v) => {
         if (err || !v.length) return res.status(404).json({ error: "No encontrado" });
-        
         db.query("SELECT d.*, p.NOMBRE FROM detalle_ventas d JOIN productos p ON d.CODIGO = p.CODIGO WHERE d.ID_VENTA = ?", [req.params.id], (err, d) => {
             res.json({ venta: v[0], detalles: d || [] });
         });
     });
 });
 
-// PUERTO DINÁMICO PARA RENDER
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor NEGRI TECH corriendo en puerto ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`));
