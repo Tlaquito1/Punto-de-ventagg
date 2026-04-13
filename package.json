@@ -1,19 +1,18 @@
 {
-  "dependencies": {
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "mysql2": "^3.20.0"
-  },
   "name": "puntoventa_bd",
   "version": "1.0.0",
-  "description": "",
-  "main": "script.js",
+  "description": "Sistema POS - Samuel Ibarra",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "mysql2": "^3.9.0"
+  },
+  "author": "Samuel Ibarra",
   "license": "ISC",
   "type": "commonjs"
 }
